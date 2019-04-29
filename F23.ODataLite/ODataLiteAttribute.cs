@@ -8,11 +8,13 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Buffers;
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using F23.Hateoas;
 
 namespace F23.ODataLite
 {
@@ -33,13 +35,16 @@ namespace F23.ODataLite
         [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
         public override async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
         {
-            // TODO.JB - Re-add hypermedia support?
-
-            if (!(context.Result is OkObjectResult ok)
-                || !(ok.Value is IQueryable rawData && rawData.GetType().IsGenericType))
+            if (!(context.Result is OkObjectResult ok))
             {
                 await base.OnResultExecutionAsync(context, next);
                 return;
+            }
+
+            if (!ok.Value.IsQueryableOrEnumerable(out var rawData) 
+                || (ok.Value is HypermediaResponse hypermedia && !hypermedia.Content.IsQueryableOrEnumerable(out rawData)))
+            {
+                throw new InvalidOperationException("Data (or HypermediaResponse.Content) must be IQueryable<T> or IEnumerable<T> to use ODataLite. Pass a queryable or enumerable, or remove this attribute.");
             }
 
             var itemType = rawData.GetType().GetGenericArguments().First();
@@ -58,7 +63,7 @@ namespace F23.ODataLite
 
             await base.OnResultExecutionAsync(context, next);
         }
-
+        
         private static async Task<OkObjectResult> ApplyODataAsync<T>(ActionContext context, IQueryable rawData)
         {
             var data = (IQueryable<T>)rawData;

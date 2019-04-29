@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>feature[23]</Authors>
+    <Description>A set of basic HATEOAS (Hypermedia As The Engine Of Application State) types to help with implementing consistent hypermedia-enabled APIs.</Description>
+    <Copyright>2019, feature[23]</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/feature23/odata-lite</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/feature23/odata-lite.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>hateoas hypermedia asp.net core mvc api</PackageTags>
+    <PackageIconUrl>https://raw.githubusercontent.com/feature23/odata-lite/master/logo.png</PackageIconUrl>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+  </ItemGroup>
+
+</Project>
