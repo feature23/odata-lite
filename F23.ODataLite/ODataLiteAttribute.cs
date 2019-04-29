@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
@@ -44,12 +45,16 @@ namespace F23.ODataLite
             var itemType = rawData.GetType().GetGenericArguments().First();
 
             var applyMethod = typeof(ODataLiteAttribute)
-                .GetMethod(nameof(ApplyODataAsync), BindingFlags.Static | BindingFlags.NonPublic)
-                .MakeGenericMethod(itemType);
+                .GetMethod(nameof(ApplyODataAsync), BindingFlags.Static | BindingFlags.NonPublic);
+            
+            Debug.Assert(applyMethod != null, nameof(applyMethod) + " != null");
 
-            var result = applyMethod.Invoke(null, new object[] { context, rawData }) as Task<OkObjectResult>;
+            applyMethod = applyMethod.MakeGenericMethod(itemType);
 
-            context.Result = await result;
+            if (applyMethod.Invoke(null, new object[] { context, rawData }) is Task<OkObjectResult> result)
+            {
+                context.Result = await result;
+            }
 
             await base.OnResultExecutionAsync(context, next);
         }

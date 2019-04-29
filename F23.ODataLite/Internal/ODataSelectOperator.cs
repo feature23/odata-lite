@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -51,9 +52,13 @@ namespace F23.ODataLite.Internal
                 .Select(p => Expression.Bind(p, Expression.Property(sourceItem, sourceProperties[p.Name])))
                 .OfType<MemberBinding>();
 
+            var constructor = anonymousType.GetConstructor(Type.EmptyTypes);
+            
+            Debug.Assert(constructor != null, nameof(constructor) + " != null");
+
             var selector = Expression.Lambda(
                 Expression.MemberInit(
-                    Expression.New(anonymousType.GetConstructor(Type.EmptyTypes)),
+                    Expression.New(constructor),
                     bindings
                 ),
                 sourceItem

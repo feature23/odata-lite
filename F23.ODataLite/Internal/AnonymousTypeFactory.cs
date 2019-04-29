@@ -21,10 +21,10 @@ namespace F23.ODataLite.Internal
             moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
         }
 
-        public static Type CreateType(IEnumerable<PropertyInfo> properties)
+        public static Type CreateType(IList<PropertyInfo> properties)
         {
             var propertyNames = properties.Select(p => p.Name).ToList();
-            var (name, hash) = GenerateGenericTypeDefinitionNameAndHash(propertyNames);
+            var name = GenerateGenericTypeDefinitionName(propertyNames);
 
             Type type;
             lock (syncRoot)
@@ -51,7 +51,7 @@ namespace F23.ODataLite.Internal
             return dynamicAnonymousType.CreateTypeInfo().AsType();
         }
 
-        private static (string, string) GenerateGenericTypeDefinitionNameAndHash(ICollection<string> propertyNames)
+        private static string GenerateGenericTypeDefinitionName(ICollection<string> propertyNames)
         {
             var keyJsonBuilder = new StringBuilder();
             keyJsonBuilder.Append('{');
@@ -67,11 +67,7 @@ namespace F23.ODataLite.Internal
                 keyHashHexString = BitConverter.ToString(hashBytes).Replace("-", string.Empty);
             }
 
-            string genericTypeDefinitionName = string.Format("<>f__ODataLiteAnonymousType{0}`{1}",
-                keyHashHexString,
-                propertyNames.Count
-            );
-            return (genericTypeDefinitionName, keyHashHexString);
+            return $"<>f__ODataLiteAnonymousType{keyHashHexString}`{propertyNames.Count}";
         }
     }
 }

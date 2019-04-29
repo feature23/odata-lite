@@ -2,13 +2,23 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>feature[23]</Authors>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>A lightweight implementation of some OData operations for ASP.NET Core APIs.</Description>
+    <PackageProjectUrl>https://github.com/feature23/odata-lite</PackageProjectUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/feature23/odata-lite/master/logo.png</PackageIconUrl>
+    <RepositoryUrl>https://github.com/feature23/odata-lite.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>odata asp.net core lite</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>2019, feature[23]</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.2" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Formatters.Json" Version="2.2.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.2.1" />
-    <PackageReference Include="Microsoft.OData.Core" Version="7.5.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.2.4" />
+    <PackageReference Include="Microsoft.OData.Core" Version="7.5.4" />
     <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
   </ItemGroup>
 
