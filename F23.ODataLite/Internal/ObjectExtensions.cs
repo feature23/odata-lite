@@ -12,7 +12,7 @@ namespace F23.ODataLite.Internal
 
         public static bool IsQueryable(this object obj, out IQueryable queryable)
         {
-            if (obj is IQueryable q && q.GetType().IsGenericType)
+            if (obj is IQueryable q)
             {
                 queryable = q;
                 return true;
@@ -24,7 +24,7 @@ namespace F23.ODataLite.Internal
 
         public static bool IsEnumerable(this object obj, out IQueryable queryable)
         {
-            if (obj is IEnumerable e && e.GetType().IsGenericType)
+            if (obj is IEnumerable e)
             {
                 queryable = ConvertToQueryable(e);
                 return true;
@@ -41,7 +41,11 @@ namespace F23.ODataLite.Internal
 
         private static IQueryable ConvertToQueryable(IEnumerable enumerable)
         {
-            var type = enumerable.GetType().GetGenericArguments().First();
+            var enumerableType = enumerable.GetType();
+
+            var type = enumerableType.IsGenericType 
+                ? enumerable.GetType().GetGenericArguments().First() 
+                : enumerable.Cast<object>().FirstOrDefault()?.GetType() ?? typeof(object);
 
             var asQueryable = _asQueryableMethod.MakeGenericMethod(type);
 

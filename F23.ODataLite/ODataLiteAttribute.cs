@@ -8,7 +8,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Buffers;
-using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -35,14 +34,14 @@ namespace F23.ODataLite
         [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
         public override async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
         {
-            if (!(context.Result is OkObjectResult ok))
+            if (!(context.Result is ObjectResult ok))
             {
                 await base.OnResultExecutionAsync(context, next);
                 return;
             }
 
             if (!ok.Value.IsQueryableOrEnumerable(out var rawData) 
-                || (ok.Value is HypermediaResponse hypermedia && !hypermedia.Content.IsQueryableOrEnumerable(out rawData)))
+                && (ok.Value is HypermediaResponse hypermedia && !hypermedia.Content.IsQueryableOrEnumerable(out rawData)))
             {
                 throw new InvalidOperationException("Data (or HypermediaResponse.Content) must be IQueryable<T> or IEnumerable<T> to use ODataLite. Pass a queryable or enumerable, or remove this attribute.");
             }
@@ -56,7 +55,7 @@ namespace F23.ODataLite
 
             applyMethod = applyMethod.MakeGenericMethod(itemType);
 
-            if (applyMethod.Invoke(null, new object[] { context, rawData }) is Task<OkObjectResult> result)
+            if (applyMethod.Invoke(null, new object[] { context, rawData, ok.Value as HypermediaResponse }) is Task<ObjectResult> result)
             {
                 context.Result = await result;
             }
@@ -64,7 +63,7 @@ namespace F23.ODataLite
             await base.OnResultExecutionAsync(context, next);
         }
         
-        private static async Task<OkObjectResult> ApplyODataAsync<T>(ActionContext context, IQueryable rawData)
+        private static async Task<ObjectResult> ApplyODataAsync<T>(ActionContext context, IQueryable rawData, HypermediaResponse hypermediaResponse)
         {
             var data = (IQueryable<T>)rawData;
 
@@ -105,11 +104,11 @@ namespace F23.ODataLite
                 projected = projected.Take(top);
             }
 
-            var isAsync = projected.Provider is IAsyncQueryProvider;
+            bool isAsync = projected.Provider is IAsyncQueryProvider;
 
             var result = query.ContainsKey("$count")
-                ? new OkObjectResult(isAsync ? await projected.CountAsync() : projected.Count())
-                : new OkObjectResult(isAsync ? await projected.ToListAsync() : projected.ToList());
+                ? CreateResult(isAsync ? await projected.CountAsync() : projected.Count(), hypermediaResponse)
+                : CreateResult(isAsync ? await projected.ToListAsync() : projected.ToList(), hypermediaResponse);
 
             if (hasSelect)
             {
@@ -117,6 +116,21 @@ namespace F23.ODataLite
             }
 
             return result;
+        }
+
+        private static OkObjectResult CreateResult(object value, HypermediaResponse hypermediaResponse)
+        {
+            var resultValue = value;
+
+            if (hypermediaResponse != null)
+            {
+                resultValue = new HypermediaResponse(value)
+                {
+                    Links = hypermediaResponse.Links
+                };
+            }
+
+            return new OkObjectResult(resultValue);
         }
     }
 }
