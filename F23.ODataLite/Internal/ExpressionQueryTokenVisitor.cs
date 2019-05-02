@@ -87,7 +87,50 @@ namespace F23.ODataLite.Internal
 
         public Expression Visit(DottedIdentifierToken tokenIn)
         {
-            throw new NotImplementedException();
+            var parts = tokenIn.Identifier.Split('.');
+
+            var propExprs = new List<MemberExpression>();
+
+            var prop = _properties.FirstOrDefault(i => i.Name.Equals(parts[0], StringComparison.OrdinalIgnoreCase));
+
+            if (prop == null)
+                throw new InvalidOperationException($"Property {parts[0]} not found on type {_parameter.Type.Name}");
+
+            var nullExpr = Expression.Constant(null);
+
+            var propExpr = Expression.Property(_parameter, prop);
+            propExprs.Add(propExpr);
+            
+            for (int i = 1; i < parts.Length; i++)
+            {
+                var parentType = prop.PropertyType;
+                var props = parentType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+                prop = props.FirstOrDefault(p => p.Name.Equals(parts[i], StringComparison.OrdinalIgnoreCase));
+
+                if (prop == null)
+                    throw new InvalidOperationException($"Property {parts[i]} not found on type {parentType.Name}");
+
+                propExpr = Expression.Property(propExpr, prop);
+                propExprs.Add(propExpr);
+            }
+
+            var finalType = prop.PropertyType;
+            Expression expr = propExprs[propExprs.Count - 1];
+
+            if (propExprs.Count > 1)
+            {
+                for (int i = propExprs.Count - 2; i >= 0; i--)
+                {
+                    propExpr = propExprs[i];
+
+                    expr = Expression.Condition(
+                        Expression.Equal(Expression.Convert(propExpr, typeof(object)), nullExpr),
+                        Expression.Default(finalType),
+                        expr);
+                }
+            }
+
+            return expr;
         }
 
         public Expression Visit(ExpandToken tokenIn)

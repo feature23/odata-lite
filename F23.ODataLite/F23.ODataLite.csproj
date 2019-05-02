@@ -12,7 +12,7 @@
     <PackageTags>odata asp.net core lite</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>2019, feature[23]</Copyright>
-    <Version>1.1.1</Version>
+    <Version>1.2.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
