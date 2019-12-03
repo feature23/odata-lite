@@ -20,7 +20,7 @@ namespace F23.ODataLite
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public class ODataLiteAttribute : ResultFilterAttribute
     {
-        private static readonly JsonOutputFormatter SelectFormatter = new JsonOutputFormatter(new JsonSerializerSettings
+        private static readonly NewtonsoftJsonOutputFormatter SelectFormatter = new NewtonsoftJsonOutputFormatter(new JsonSerializerSettings
         {
             ContractResolver = new CamelCasePropertyNamesContractResolver
             {
@@ -29,7 +29,7 @@ namespace F23.ODataLite
                     ProcessDictionaryKeys = true
                 }
             }
-        }, ArrayPool<char>.Shared);
+        }, ArrayPool<char>.Shared, new MvcOptions());
 
         [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
         public override async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)

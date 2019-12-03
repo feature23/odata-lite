@@ -196,6 +196,11 @@ namespace F23.ODataLite.Internal
             throw new NotImplementedException();
         }
 
+        public Expression Visit(SelectTermToken tokenIn)
+        {
+            throw new NotImplementedException();
+        }
+
         public Expression Visit(StarToken tokenIn)
         {
             throw new NotImplementedException();
