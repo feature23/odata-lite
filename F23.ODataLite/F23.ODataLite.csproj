@@ -6,7 +6,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Description>A lightweight implementation of some OData operations for ASP.NET Core APIs.</Description>
     <PackageProjectUrl>https://github.com/feature23/odata-lite</PackageProjectUrl>
-    <PackageIconUrl>https://raw.githubusercontent.com/feature23/odata-lite/master/logo.png</PackageIconUrl>
+    <PackageIcon>logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/feature23/odata-lite.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>odata asp.net core lite</PackageTags>
@@ -28,6 +28,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\F23.Hateoas\F23.Hateoas.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\logo.png" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>
