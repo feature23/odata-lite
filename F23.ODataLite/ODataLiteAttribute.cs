@@ -40,10 +40,23 @@ namespace F23.ODataLite
                 return;
             }
 
-            if (!ok.Value.IsQueryableOrEnumerable(out var rawData) 
-                && (ok.Value is HypermediaResponse hypermedia && !hypermedia.Content.IsQueryableOrEnumerable(out rawData)))
+            bool isQueryable = ok.Value.IsQueryable(out var rawData);
+
+            if (!isQueryable && !ok.Value.IsEnumerable(out rawData))
             {
-                throw new InvalidOperationException("Data (or HypermediaResponse.Content) must be IQueryable<T> or IEnumerable<T> to use ODataLite. Pass a queryable or enumerable, or remove this attribute.");
+                if (ok.Value is HypermediaResponse hypermedia)
+                {
+                    isQueryable = hypermedia.Content.IsQueryable(out rawData);
+
+                    if (!isQueryable && !hypermedia.Content.IsEnumerable(out rawData))
+                    {
+                        throw new InvalidOperationException("HypermediaResponse.Content must be IQueryable<T> or IEnumerable<T> to use ODataLite. Pass a queryable or enumerable, or remove this attribute.");
+                    }
+                }
+                else
+                {
+                    throw new InvalidOperationException("Data must be IQueryable<T> or IEnumerable<T> to use ODataLite. Pass a queryable or enumerable, or remove this attribute.");
+                }
             }
 
             var itemType = rawData.GetType().GetGenericArguments().First();
@@ -55,7 +68,7 @@ namespace F23.ODataLite
 
             applyMethod = applyMethod.MakeGenericMethod(itemType);
 
-            if (applyMethod.Invoke(null, new object[] { context, rawData, ok.Value as HypermediaResponse }) is Task<ObjectResult> result)
+            if (applyMethod.Invoke(null, new object[] { context, rawData, ok.Value as HypermediaResponse, isQueryable }) is Task<ObjectResult> result)
             {
                 context.Result = await result;
             }
@@ -63,7 +76,7 @@ namespace F23.ODataLite
             await base.OnResultExecutionAsync(context, next);
         }
         
-        private static async Task<ObjectResult> ApplyODataAsync<T>(ActionContext context, IQueryable rawData, HypermediaResponse hypermediaResponse)
+        private static async Task<ObjectResult> ApplyODataAsync<T>(ActionContext context, IQueryable rawData, HypermediaResponse hypermediaResponse, bool isQueryable)
         {
             var data = (IQueryable<T>)rawData;
 
@@ -74,7 +87,7 @@ namespace F23.ODataLite
 
             if (query.HasParam("$filter", out var filterValue))
             {
-                data = ODataFilterOperator.Apply(data, properties.Value, filterValue);
+                data = ODataFilterOperator.Apply(data, properties.Value, filterValue, isQueryable);
             }
 
             if (query.HasParam("$orderby", out var orderByValue))

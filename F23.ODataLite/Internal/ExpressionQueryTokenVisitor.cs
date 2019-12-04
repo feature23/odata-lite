@@ -11,15 +11,18 @@ namespace F23.ODataLite.Internal
     internal class ExpressionQueryTokenVisitor : ISyntacticTreeVisitor<Expression>
     {
         private static readonly MethodInfo _hasFlagMethod = typeof(Enum).GetMethod(nameof(Enum.HasFlag), BindingFlags.Instance | BindingFlags.Public);
+        private static readonly MethodInfo _toStringMethod = typeof(object).GetMethod(nameof(ToString), BindingFlags.Instance | BindingFlags.Public);
         private static readonly MethodInfo _fuzzyEqualsMethod = typeof(ExpressionQueryTokenVisitor).GetMethod(nameof(FuzzyEquals), BindingFlags.Static | BindingFlags.NonPublic);
 
         private readonly ParameterExpression _parameter;
         private readonly IEnumerable<PropertyInfo> _properties;
+        private readonly bool _inMemoryEvaluation;
 
-        public ExpressionQueryTokenVisitor(ParameterExpression parameterExpression, IEnumerable<PropertyInfo> properties)
+        public ExpressionQueryTokenVisitor(ParameterExpression parameterExpression, IEnumerable<PropertyInfo> properties, bool inMemoryEvaluation)
         {
             _parameter = parameterExpression;
             _properties = properties;
+            _inMemoryEvaluation = inMemoryEvaluation;
         }
 
         private static bool FuzzyEquals(object left, object right)
@@ -77,7 +80,21 @@ namespace F23.ODataLite.Internal
 
         private Expression GetEqualsExpression(BinaryOperatorToken tokenIn)
         {
-            return Expression.Call(null, _fuzzyEqualsMethod, Expression.Convert(tokenIn.Left.Accept(this), typeof(object)), Expression.Convert(tokenIn.Right.Accept(this), typeof(object)));
+            if (_inMemoryEvaluation) 
+                return Expression.Call(null, _fuzzyEqualsMethod, Expression.Convert(tokenIn.Left.Accept(this), typeof(object)), Expression.Convert(tokenIn.Right.Accept(this), typeof(object)));
+
+            var left = tokenIn.Left.Accept(this);
+            var right = tokenIn.Right.Accept(this);
+
+            return Expression.Or(
+                Expression.Equal(left, right),
+                Expression.And(
+                    Expression.And(
+                        Expression.NotEqual(left, Expression.Constant(null)),
+                        Expression.NotEqual(right, Expression.Constant(null))),
+                    Expression.Equal(Expression.Call(left, _toStringMethod), Expression.Call(right, _toStringMethod))
+                )
+            );
         }
 
         public Expression Visit(InToken tokenIn)
