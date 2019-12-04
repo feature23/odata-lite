@@ -87,11 +87,11 @@ namespace F23.ODataLite.Internal
             var right = tokenIn.Right.Accept(this);
 
             return Expression.Or(
-                Expression.Equal(left, right),
+                Expression.Equal(Expression.Convert(left, typeof(object)), Expression.Convert(right, typeof(object))),
                 Expression.And(
                     Expression.And(
-                        Expression.NotEqual(left, Expression.Constant(null)),
-                        Expression.NotEqual(right, Expression.Constant(null))),
+                        Expression.NotEqual(Expression.Convert(left, typeof(object)), Expression.Constant(null)),
+                        Expression.NotEqual(Expression.Convert(right, typeof(object)), Expression.Constant(null))),
                     Expression.Equal(Expression.Call(left, _toStringMethod), Expression.Call(right, _toStringMethod))
                 )
             );
