@@ -12,5 +12,11 @@ namespace F23.ODataLite.Internal
 
             return Expression.Lambda<Func<T, object>>(Expression.Convert(Expression.Property(param, selectedProperty), typeof(object)), param);
         }
+
+        public static bool IsNullableType(this Type type)
+        {
+            return type.IsGenericType &&
+                type.GetGenericTypeDefinition() == typeof(Nullable<>);
+        }
     }
 }

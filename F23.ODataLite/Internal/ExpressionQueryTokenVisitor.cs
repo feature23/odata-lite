@@ -10,6 +10,17 @@ namespace F23.ODataLite.Internal
 {
     internal class ExpressionQueryTokenVisitor : ISyntacticTreeVisitor<Expression>
     {
+        private readonly Dictionary<BinaryOperatorKind, Func<Expression, Expression, Expression>> EqualityExprs =
+            new Dictionary<BinaryOperatorKind, Func<Expression, Expression, Expression>>
+            {
+                [BinaryOperatorKind.Equal] = (left, right) => Expression.Equal(left, right),
+                [BinaryOperatorKind.NotEqual] = (left, right) => Expression.NotEqual(left, right),
+                [BinaryOperatorKind.GreaterThan] = (left, right) => Expression.GreaterThan(left, right),
+                [BinaryOperatorKind.GreaterThanOrEqual] = (left, right) => Expression.GreaterThanOrEqual(left, right),
+                [BinaryOperatorKind.LessThan] = (left, right) => Expression.LessThan(left, right),
+                [BinaryOperatorKind.LessThanOrEqual] = (left, right) => Expression.LessThanOrEqual(left, right),
+            };
+
         private static readonly MethodInfo _hasFlagMethod = typeof(Enum).GetMethod(nameof(Enum.HasFlag), BindingFlags.Instance | BindingFlags.Public);
         private static readonly MethodInfo _toStringMethod = typeof(object).GetMethod(nameof(ToString), BindingFlags.Instance | BindingFlags.Public);
         private static readonly MethodInfo _fuzzyEqualsMethod = typeof(ExpressionQueryTokenVisitor).GetMethod(nameof(FuzzyEquals), BindingFlags.Static | BindingFlags.NonPublic);
@@ -17,12 +28,17 @@ namespace F23.ODataLite.Internal
         private readonly ParameterExpression _parameter;
         private readonly IEnumerable<PropertyInfo> _properties;
         private readonly bool _inMemoryEvaluation;
+        private readonly bool _supportDecimalType;
 
-        public ExpressionQueryTokenVisitor(ParameterExpression parameterExpression, IEnumerable<PropertyInfo> properties, bool inMemoryEvaluation)
+        public ExpressionQueryTokenVisitor(ParameterExpression parameterExpression,
+            IEnumerable<PropertyInfo> properties,
+            bool inMemoryEvaluation,
+            bool supportDecimalType)
         {
             _parameter = parameterExpression;
             _properties = properties;
             _inMemoryEvaluation = inMemoryEvaluation;
+            _supportDecimalType = supportDecimalType;
         }
 
         private static bool FuzzyEquals(object left, object right)
@@ -49,18 +65,6 @@ namespace F23.ODataLite.Internal
                     return Expression.Or(tokenIn.Left.Accept(this), tokenIn.Right.Accept(this));
                 case BinaryOperatorKind.And:
                     return Expression.And(tokenIn.Left.Accept(this), tokenIn.Right.Accept(this));
-                case BinaryOperatorKind.Equal:
-                    return GetEqualsExpression(tokenIn);
-                case BinaryOperatorKind.NotEqual:
-                    return Expression.Not(GetEqualsExpression(tokenIn));
-                case BinaryOperatorKind.GreaterThan:
-                    return Expression.GreaterThan(tokenIn.Left.Accept(this), tokenIn.Right.Accept(this));
-                case BinaryOperatorKind.GreaterThanOrEqual:
-                    return Expression.GreaterThanOrEqual(tokenIn.Left.Accept(this), tokenIn.Right.Accept(this));
-                case BinaryOperatorKind.LessThan:
-                    return Expression.LessThan(tokenIn.Left.Accept(this), tokenIn.Right.Accept(this));
-                case BinaryOperatorKind.LessThanOrEqual:
-                    return Expression.LessThanOrEqual(tokenIn.Left.Accept(this), tokenIn.Right.Accept(this));
                 case BinaryOperatorKind.Add:
                     return Expression.Add(tokenIn.Left.Accept(this), tokenIn.Right.Accept(this));
                 case BinaryOperatorKind.Subtract:
@@ -73,28 +77,18 @@ namespace F23.ODataLite.Internal
                     return Expression.Modulo(tokenIn.Left.Accept(this), tokenIn.Right.Accept(this));
                 case BinaryOperatorKind.Has:
                     return Expression.Call(tokenIn.Left.Accept(this), _hasFlagMethod, tokenIn.Right.Accept(this));
+
+                case BinaryOperatorKind.Equal:
+                case BinaryOperatorKind.NotEqual:
+                case BinaryOperatorKind.GreaterThan:
+                case BinaryOperatorKind.GreaterThanOrEqual:
+                case BinaryOperatorKind.LessThan:
+                case BinaryOperatorKind.LessThanOrEqual:
+                    return GetEqualityExpression(tokenIn);
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-        }
-
-        private Expression GetEqualsExpression(BinaryOperatorToken tokenIn)
-        {
-            if (_inMemoryEvaluation) 
-                return Expression.Call(null, _fuzzyEqualsMethod, Expression.Convert(tokenIn.Left.Accept(this), typeof(object)), Expression.Convert(tokenIn.Right.Accept(this), typeof(object)));
-
-            var left = tokenIn.Left.Accept(this);
-            var right = tokenIn.Right.Accept(this);
-
-            return Expression.Or(
-                Expression.Equal(Expression.Convert(left, typeof(object)), Expression.Convert(right, typeof(object))),
-                Expression.And(
-                    Expression.And(
-                        Expression.NotEqual(Expression.Convert(left, typeof(object)), Expression.Constant(null)),
-                        Expression.NotEqual(Expression.Convert(right, typeof(object)), Expression.Constant(null))),
-                    Expression.Equal(Expression.Call(left, _toStringMethod), Expression.Call(right, _toStringMethod))
-                )
-            );
         }
 
         public Expression Visit(InToken tokenIn)
@@ -117,7 +111,7 @@ namespace F23.ODataLite.Internal
 
             var propExpr = Expression.Property(_parameter, prop);
             propExprs.Add(propExpr);
-            
+
             for (int i = 1; i < parts.Length; i++)
             {
                 var parentType = prop.PropertyType;
@@ -259,6 +253,90 @@ namespace F23.ODataLite.Internal
         public Expression Visit(GroupByToken tokenIn)
         {
             throw new NotImplementedException();
+        }
+
+        private Expression GetEqualityExpression(BinaryOperatorToken tokenIn)
+        {
+            var left = tokenIn.Left.Accept(this);
+            var right = tokenIn.Right.Accept(this);
+
+            if (tokenIn.OperatorKind == BinaryOperatorKind.Equal && _inMemoryEvaluation)
+            {
+                // TODO.JB - Do we need to apply this logic for other operators with in-memory eval?
+                return Expression.Call(
+                    null,
+                    _fuzzyEqualsMethod,
+                    Expression.Convert(left, typeof(object)),
+                    Expression.Convert(right, typeof(object))
+                );
+            }
+
+            (left, right) = ConvertTypesIfNeeded(left, right);
+
+            return EqualityExprs[tokenIn.OperatorKind](left, right);
+        }
+
+        private (Expression, Expression) ConvertTypesIfNeeded(Expression left, Expression right)
+        {
+            var targetType = left.Type;
+
+            if (right is ConstantExpression expr)
+            {
+                if (_inMemoryEvaluation && targetType.IsAssignableFrom(expr.Type))
+                {
+                    // Attempt automatic type conversion if we're evaluating
+                    // in-memory and .NET can to the conversion.
+                    right = Expression.Convert(right, targetType);
+                }
+                else if (typeof(IConvertible).IsAssignableFrom(targetType) &&
+                         expr.Value is IConvertible convertible)
+                {
+                    if (targetType == typeof(decimal) && !_supportDecimalType)
+                    {
+                        left = Expression.Convert(left, typeof(double));
+                        right = Expression.Constant(convertible.ToType(typeof(double), null));
+                    }
+                    else
+                    {
+                        right = Expression.Constant(convertible.ToType(targetType, null));
+                    }
+                }
+                else if (targetType.IsNullableType())
+                {
+                    var underlyingTargetType = targetType.GetGenericArguments().First();
+
+                    (left, right) = AttemptManualTypeConversion(left, expr, underlyingTargetType);
+
+                    right = Expression.Convert(right, targetType);
+                }
+                else
+                {
+                    (left, right) = AttemptManualTypeConversion(left, expr, targetType);
+                }
+            }
+
+            return (left, right);
+        }
+
+        private (Expression left, Expression right) AttemptManualTypeConversion(Expression left, Expression right, Type targetType)
+        {
+            // Attempt manual type conversion.
+            if (right is ConstantExpression expr && expr.Value is string @string)
+            {
+                if (targetType == typeof(Guid))
+                {
+                    right = Expression.Constant(Guid.Parse(@string));
+                }
+                else if (typeof(Enum).IsAssignableFrom(targetType))
+                {
+                    var enumValue = Enum.Parse(targetType, @string);
+                    right = Expression.Convert(Expression.Constant(enumValue), targetType);
+                }
+            }
+
+            // Unknown conversion. Subsequent query will likely fail.
+
+            return (left, right);
         }
     }
 }

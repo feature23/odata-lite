@@ -41,8 +41,8 @@ namespace F23.ODataLite.Internal
 
         private static Type CreateTypeNoLock(string name, IEnumerable<PropertyInfo> properties)
         {
-            var dynamicAnonymousType = moduleBuilder.DefineType(name, TypeAttributes.Public);
-
+            var dynamicAnonymousType = moduleBuilder.DefineType(name, TypeAttributes.NotPublic);
+            
             foreach (var prop in properties)
             {
                 dynamicAnonymousType.DefineField(prop.Name, prop.PropertyType, FieldAttributes.Public);
