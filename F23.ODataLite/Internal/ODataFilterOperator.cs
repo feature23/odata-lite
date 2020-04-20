@@ -9,7 +9,11 @@ namespace F23.ODataLite.Internal
 {
     internal static class ODataFilterOperator
     {
-        public static IQueryable<T> Apply<T>(IQueryable<T> data, IEnumerable<PropertyInfo> properties, string parameter, bool isQueryable)
+        public static IQueryable<T> Apply<T>(IQueryable<T> data, 
+            IEnumerable<PropertyInfo> properties, 
+            string parameter, 
+            bool isQueryable,
+            bool supportDecimalType)
         {
             var parser = new UriQueryExpressionParser(10);
 
@@ -17,7 +21,12 @@ namespace F23.ODataLite.Internal
 
             var param = Expression.Parameter(typeof(T));
 
-            var visitor = new ExpressionQueryTokenVisitor(param, properties, !isQueryable);
+            var visitor = new ExpressionQueryTokenVisitor(
+                param, 
+                properties, 
+                !isQueryable, 
+                supportDecimalType
+            );
 
             var expr = token.Accept(visitor);
 

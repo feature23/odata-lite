@@ -7,7 +7,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "F23.ODataLite", "F23.ODataL
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "F23.Hateoas", "F23.Hateoas\F23.Hateoas.csproj", "{4DCB477A-E6C9-48E8-8AC4-33B0EBA93785}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example", "Example\Example.csproj", "{C58C9FB9-D01E-47EF-B69E-4B7060338649}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Example", "Example\Example.csproj", "{C58C9FB9-D01E-47EF-B69E-4B7060338649}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "F23.ODataLite.Tests", "F23.ODataLite.Tests\F23.ODataLite.Tests.csproj", "{2D4902E6-DED6-4053-BC2B-099F1DA4D72B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{C58C9FB9-D01E-47EF-B69E-4B7060338649}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C58C9FB9-D01E-47EF-B69E-4B7060338649}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C58C9FB9-D01E-47EF-B69E-4B7060338649}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D4902E6-DED6-4053-BC2B-099F1DA4D72B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D4902E6-DED6-4053-BC2B-099F1DA4D72B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D4902E6-DED6-4053-BC2B-099F1DA4D72B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D4902E6-DED6-4053-BC2B-099F1DA4D72B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
